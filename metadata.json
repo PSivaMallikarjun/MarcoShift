@@ -1,0 +1,6 @@
+{
+  "name": "MacroShift",
+  "description": "Adaptive capital-shifting game powered by a dynamic macro-economic engine with policy directive shocks and debt liabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

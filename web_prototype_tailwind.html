@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacroShift - Adaptive Capital Survival Engine</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandDark: '#090D16',
+                        cardDark: '#111726',
+                        cardElevated: '#182238',
+                        cyanNeon: '#00E5FF',
+                        emeraldNeon: '#00E676',
+                        amberNeon: '#FFD600',
+                        crimsonNeon: '#FF1744',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #090D16; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        @keyframes pulseBorder {
+            0%, 100% { border-color: rgba(255, 23, 68, 0.4); }
+            50% { border-color: rgba(255, 23, 68, 1); }
+        }
+        .danger-pulse { animation: pulseBorder 1s infinite; }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+    <!-- USER AUTH & SESSION TOP BAR -->
+    <div class="bg-[#0b101d] border-b border-slate-800/80 px-4 py-1.5 text-xs">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-cyan-400 font-extrabold tracking-wider">MACROSHIFT // ENGINE</span>
+                <span class="text-slate-500">|</span>
+                <button onclick="openTutorial()" class="text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1">
+                    <span>💡 Interactive Tutorial</span>
+                </button>
+            </div>
+            <!-- Auth status / actions -->
+            <div id="auth-bar-content" class="flex items-center space-x-3">
+                <span id="user-display" class="text-slate-400">Guest Player</span>
+                <button onclick="openAuthModal('signin')" id="btn-login-open" class="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold px-2.5 py-0.5 rounded border border-cyan-500/30">Sign In</button>
+                <button onclick="openAuthModal('signup')" id="btn-signup-open" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-0.5 rounded border border-slate-700">Sign Up</button>
+                <button onclick="saveCurrentGame()" id="btn-save-game" class="hidden bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-2.5 py-0.5 rounded border border-emerald-500/30">💾 Save Game</button>
+                <button onclick="resumeSavedGame()" id="btn-resume-game" class="hidden bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 font-bold px-2.5 py-0.5 rounded border border-purple-500/30">⚡ Resume Game</button>
+                <button onclick="logOutUser()" id="btn-logout" class="hidden text-red-400 hover:text-red-300">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. PERSISTENT PROMINENT TRACKING BAR -->
+    <header class="sticky top-0 z-40 bg-[#111726]/95 backdrop-blur border-b border-slate-800 shadow-2xl">
+        <div class="max-w-6xl mx-auto px-4 py-3">
+            <!-- Top Macro Climate Strip -->
+            <div class="flex items-center justify-between text-xs pb-2 border-b border-slate-800/60 mb-2">
+                <div class="flex items-center space-x-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span id="regime-name" class="font-extrabold text-cyan-400 uppercase tracking-wider">AGGRESSIVE STAGFLATION SPIRAL</span>
+                </div>
+                <div class="flex items-center space-x-4 mono font-semibold">
+                    <span>REPO: <strong id="repo-rate-val" class="text-amber-400">8.50%</strong></span>
+                    <span>CPI: <strong id="cpi-val" class="text-crimsonNeon">12.50%</strong></span>
+                    <span>ADAPTIVE RESILIENCE: <strong id="resilience-score" class="text-emerald-400">100%</strong></span>
+                </div>
+            </div>
+
+            <!-- 3 Core Highlight Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- Total Net Worth Card -->
+                <div class="bg-[#182238] rounded-xl p-3 border border-slate-700/60 shadow-inner flex flex-col justify-between">
+                    <div class="flex justify-between items-center text-[10px] tracking-wider uppercase text-slate-400 font-bold">
+                        <span>Total Net Worth</span>
+                        <span id="nw-delta" class="text-emerald-400 font-mono">+2.4%/s</span>
+                    </div>
+                    <div class="text-2xl mono font-extrabold text-white mt-1" id="net-worth-display">$115,000</div>
+                    <div class="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
+                        <div id="nw-bar" class="bg-cyan-400 h-full w-3/4 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Liquid Cash Card -->
+                <div id="cash-card-border" class="bg-[#182238] rounded-xl p-3 border border-slate-700/60 shadow-inner flex flex-col justify-between">
+                    <div class="flex justify-between items-center text-[10px] tracking-wider uppercase text-slate-400 font-bold">
+                        <span>Liquid Cash (Servicing Fuel)</span>
+                        <span id="cash-runway" class="text-slate-400 font-mono">Runway: 4.2x Due</span>
+                    </div>
+                    <div class="text-2xl mono font-extrabold text-emeraldNeon mt-1" id="liquid-cash-display">$35,000</div>
+                    <div class="text-[11px] text-slate-400 flex items-center justify-between mt-1">
+                        <span>Required for Debt Settlement</span>
+                        <span class="text-amber-300 text-xs font-mono">Zero nominal loss</span>
+                    </div>
+                </div>
+
+                <!-- Inflation-Adjusted Debt-Servicing Liabilities -->
+                <div id="debt-card-border" class="bg-[#182238] rounded-xl p-3 border border-slate-700/60 shadow-inner flex flex-col justify-between">
+                    <div class="flex justify-between items-center text-[10px] tracking-wider uppercase text-slate-400 font-bold">
+                        <span>Debt-Servicing Liabilities</span>
+                        <span id="strikes-display" class="text-emerald-400 font-mono">0/3 Strikes</span>
+                    </div>
+                    <div class="flex items-baseline space-x-2 mt-1">
+                        <div class="text-2xl mono font-extrabold text-amber-400" id="debt-service-display">$918</div>
+                        <span class="text-xs text-slate-400 font-mono">/ billing cycle</span>
+                    </div>
+                    <!-- Countdown Bar -->
+                    <div class="flex items-center justify-between text-xs mt-1">
+                        <span class="text-cyan-400 font-semibold" id="due-timer">Due in 12s</span>
+                        <div class="w-24 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="due-progress" class="bg-cyan-400 h-full w-full transition-all duration-1000"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. MAIN DASHBOARD CONTENT -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+
+        <!-- GOVERNANCE DIRECTIVE BANNER (DYNAMIC INJECTION) -->
+        <div id="directive-banner" class="bg-gradient-to-r from-red-950/60 via-[#182238] to-slate-900 border border-red-500 rounded-2xl p-4 shadow-xl transition-all">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-red-500/20 text-red-400 text-[10px] font-extrabold px-2 py-0.5 rounded tracking-widest uppercase">CRITICAL DIRECTIVE</span>
+                        <span id="directive-timer" class="text-xs mono text-slate-400 font-bold">Expires in 18s</span>
+                    </div>
+                    <h3 id="directive-title" class="text-base font-bold text-white">National Central Bank Raises Repo Rates by 250 bps</h3>
+                    <p id="directive-desc" class="text-xs text-slate-300">Emergency MPC decree: Sovereign Long Bonds drop -19%. Cash yield climbs to 10.5%. Tech discount rates surge.</p>
+                </div>
+                <div class="flex items-center space-x-2 shrink-0">
+                    <button onclick="quickHedgeToSafety()" class="bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition shadow-lg shadow-cyan-400/20">
+                        ⚡ Quick Hedge to Cash
+                    </button>
+                    <button onclick="dismissDirective()" class="border border-slate-700 hover:border-slate-500 text-slate-300 px-3 py-2 rounded-lg text-xs transition">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REAL-TIME ASSET ALLOCATION VISUALIZER (DONUT & BARS) -->
+        <div class="bg-[#111726] rounded-2xl p-5 border border-slate-800 shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-cyan-400 text-base">📊</span>
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-white">Real-Time Asset Allocation Visualizer</h3>
+                </div>
+                <span class="text-xs text-slate-400 mono" id="visualizer-total-assets">Total Assets: $205,000</span>
+            </div>
+
+            <!-- Unified Stacked Allocation Bar -->
+            <div class="w-full h-4 bg-slate-800 rounded-lg overflow-hidden flex shadow-inner mb-4" id="stacked-allocation-bar">
+                <!-- Stacked slices injected dynamically -->
+            </div>
+
+            <!-- Visualizer Breakdown Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2" id="allocation-legend-grid">
+                <!-- Legend chips injected dynamically -->
+            </div>
+        </div>
+
+        <!-- QUICK REBALANCE PRESET BUTTONS -->
+        <div class="flex items-center justify-between flex-wrap gap-2 bg-[#111726] p-3 rounded-xl border border-slate-800">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tactical Capital Rotation:</span>
+            <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+                <button onclick="applyPreset('SAFETY')" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-500/30 transition">🛡️ Flight to Cash</button>
+                <button onclick="applyPreset('INFLATION')" class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/30 transition">🔥 Commodity Shield</button>
+                <button onclick="applyPreset('GROWTH')" class="text-xs bg-slate-800 hover:bg-slate-700 text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/30 transition">🚀 Tech & Crypto Surge</button>
+                <button onclick="applyPreset('BALANCED')" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-400 px-3 py-1.5 rounded-lg border border-cyan-500/30 transition">⚖️ All-Weather 60/40</button>
+            </div>
+        </div>
+
+        <!-- ASSET BUCKETS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="asset-grid">
+            <!-- Dynamic Asset Cards rendered by JS -->
+        </div>
+
+        <!-- EVENT LOG & RECENT DIRECTIVES -->
+        <div class="bg-[#111726] rounded-xl border border-slate-800 p-4">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">Macroeconomic Event & Shocks Ledger</h4>
+            <div id="event-logs" class="space-y-1.5 max-h-36 overflow-y-auto text-xs mono text-slate-300">
+                <div class="text-cyan-400">[TICK 1] Timeline initiated: 1970s Great Stagflation. Initial Debt: $90,000.</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- INTERACTIVE TUTORIAL MODAL -->
+    <div id="tutorial-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#111726] border border-cyan-500/50 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-cyan-400 text-xl">🎓</span>
+                    <div>
+                        <h3 class="font-extrabold text-white text-base" id="tut-title">CORE MACRO MECHANICS</h3>
+                        <span class="text-xs text-cyan-400 mono" id="tut-step-tag">Step 1 of 5</span>
+                    </div>
+                </div>
+                <button onclick="closeTutorial()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <p class="text-sm text-slate-300" id="tut-desc">
+                MacroShift models an active macro-economy where each tick equals one fiscal month. Your Net Worth equals your total assets minus debt liabilities.
+            </p>
+
+            <div class="bg-[#182238] rounded-xl p-4 border border-slate-700/60 space-y-2 text-xs text-slate-200" id="tut-points">
+                <!-- Injected points -->
+            </div>
+
+            <div class="flex items-center justify-between pt-3">
+                <button onclick="prevTutStep()" id="btn-tut-prev" class="border border-slate-700 hover:border-slate-500 text-slate-300 px-3 py-1.5 rounded-lg text-xs">Previous</button>
+                <div class="flex space-x-1" id="tut-dots"></div>
+                <button onclick="nextTutStep()" id="btn-tut-next" class="bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold px-4 py-1.5 rounded-lg text-xs">Next Step</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER AUTH MODAL (SIGN IN / SIGN UP) -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#111726] border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 class="font-bold text-white text-base" id="auth-modal-title">Sign In to MacroShift</h3>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <div class="flex border-b border-slate-800">
+                <button onclick="switchAuthTab('signin')" id="tab-signin" class="flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400">Sign In</button>
+                <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 pb-2 text-xs font-bold text-slate-400 border-b-2 border-transparent">Create Account</button>
+            </div>
+
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
+                    <input type="text" id="auth-username" required class="w-full bg-[#182238] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                </div>
+                <div id="email-field" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Email</label>
+                    <input type="email" id="auth-email" class="w-full bg-[#182238] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+                    <input type="password" id="auth-password" required class="w-full bg-[#182238] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                </div>
+                <p id="auth-error" class="text-xs text-red-400 hidden"></p>
+                <button type="submit" id="btn-auth-submit" class="w-full bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold py-2 rounded-lg text-xs transition">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- INTERACTIVE JAVASCRIPT ENGINE & VISUALIZER LOOP -->
+    <script>
+        const state = {
+            tick: 0,
+            status: "RUNNING",
+            repoRate: 0.085,
+            inflation: 0.125,
+            capitalGainsTax: 0.25,
+            debtPrincipal: 90000,
+            debtSeconds: 12,
+            debtStrikes: 0,
+            resilience: 100,
+            activeDirective: {
+                title: "National Central Bank Raises Repo Rates by 250 bps",
+                desc: "Emergency rate hike. Sovereign bonds face severe capital destruction. Shift capital to Cash & Gold to avoid insolvency.",
+                remaining: 18,
+                repoDelta: 250,
+                shocks: { BONDS: -0.19, TECH: -0.09, COMMODITIES: 0.15 }
+            },
+            assets: [
+                { id: "CASH", name: "Liquid Cash & T-Bills", ticker: "USD/BIL", balance: 35000, apr: 0.075, colorHex: "#00E676", colorClass: "text-emerald-400", bgClass: "bg-emerald-500", duration: "0y" },
+                { id: "BONDS", name: "Sovereign Long Bonds", ticker: "UST-20Y", balance: 30000, apr: -0.02, colorHex: "#38BDF8", colorClass: "text-blue-400", bgClass: "bg-sky-500", duration: "8.5y" },
+                { id: "TECH", name: "Growth Tech Equities", ticker: "QQQ/TECH", balance: 25000, apr: 0.05, colorHex: "#A78BFA", colorClass: "text-purple-400", bgClass: "bg-purple-500", duration: "3.0y" },
+                { id: "COMMODITIES", name: "Commodities & Gold", ticker: "GLD/OIL", balance: 20000, apr: 0.22, colorHex: "#FBBF24", colorClass: "text-amber-400", bgClass: "bg-amber-500", duration: "0.5y" },
+                { id: "REIT", name: "Commercial REITs", ticker: "VNQ/REIT", balance: 15000, apr: 0.03, colorHex: "#2DD4BF", colorClass: "text-teal-400", bgClass: "bg-teal-500", duration: "5.0y" },
+                { id: "CRYPTO", name: "Venture Digital Assets", ticker: "BTC/SOL", balance: 5000, apr: 0.14, colorHex: "#F43F5E", colorClass: "text-pink-400", bgClass: "bg-pink-500", duration: "1.0y" },
+            ]
+        };
+
+        // ================= AUTH SYSTEM =================
+        let currentUser = null;
+        let authCurrentTab = 'signin';
+
+        function checkAuthSession() {
+            const saved = localStorage.getItem('macroshift_session');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                updateAuthUI();
+            }
+        }
+
+        function updateAuthUI() {
+            const userDisplay = document.getElementById('user-display');
+            const btnLogin = document.getElementById('btn-login-open');
+            const btnSignup = document.getElementById('btn-signup-open');
+            const btnSave = document.getElementById('btn-save-game');
+            const btnResume = document.getElementById('btn-resume-game');
+            const btnLogout = document.getElementById('btn-logout');
+
+            if (currentUser) {
+                userDisplay.innerText = `👤 ${currentUser.username} (Macro Strategist)`;
+                btnLogin.classList.add('hidden');
+                btnSignup.classList.add('hidden');
+                btnSave.classList.remove('hidden');
+                btnLogout.classList.remove('hidden');
+
+                // Check if user has saved game
+                const savedSlot = localStorage.getItem(`macroshift_save_${currentUser.username}`);
+                if (savedSlot) {
+                    btnResume.classList.remove('hidden');
+                } else {
+                    btnResume.classList.add('hidden');
+                }
+            } else {
+                userDisplay.innerText = 'Guest Player';
+                btnLogin.classList.remove('hidden');
+                btnSignup.classList.remove('hidden');
+                btnSave.classList.add('hidden');
+                btnResume.classList.add('hidden');
+                btnLogout.classList.add('hidden');
+            }
+        }
+
+        function openAuthModal(tab) {
+            authCurrentTab = tab;
+            switchAuthTab(tab);
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function switchAuthTab(tab) {
+            authCurrentTab = tab;
+            const tabIn = document.getElementById('tab-signin');
+            const tabUp = document.getElementById('tab-signup');
+            const emailField = document.getElementById('email-field');
+            const submitBtn = document.getElementById('btn-auth-submit');
+            const modalTitle = document.getElementById('auth-modal-title');
+
+            if (tab === 'signin') {
+                tabIn.className = "flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400";
+                tabUp.className = "flex-1 pb-2 text-xs font-bold text-slate-400 border-b-2 border-transparent";
+                emailField.classList.add('hidden');
+                submitBtn.innerText = "Sign In";
+                modalTitle.innerText = "Sign In to MacroShift";
+            } else {
+                tabUp.className = "flex-1 pb-2 text-xs font-bold text-cyan-400 border-b-2 border-cyan-400";
+                tabIn.className = "flex-1 pb-2 text-xs font-bold text-slate-400 border-b-2 border-transparent";
+                emailField.classList.remove('hidden');
+                submitBtn.innerText = "Create Player Account";
+                modalTitle.innerText = "Register New Player";
+            }
+        }
+
+        function handleAuthSubmit(e) {
+            e.preventDefault();
+            const u = document.getElementById('auth-username').value.trim();
+            const p = document.getElementById('auth-password').value;
+            const email = document.getElementById('auth-email').value.trim();
+            const errEl = document.getElementById('auth-error');
+
+            const users = JSON.parse(localStorage.getItem('macroshift_users') || '{}');
+
+            if (authCurrentTab === 'signup') {
+                if (users[u]) {
+                    errEl.innerText = "Username already registered.";
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                users[u] = { username: u, email: email, password: p };
+                localStorage.setItem('macroshift_users', JSON.stringify(users));
+                currentUser = { username: u, email: email };
+            } else {
+                if (!users[u] || users[u].password !== p) {
+                    errEl.innerText = "Invalid credentials. Please try again.";
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                currentUser = { username: u, email: users[u].email };
+            }
+
+            localStorage.setItem('macroshift_session', JSON.stringify(currentUser));
+            updateAuthUI();
+            closeAuthModal();
+            logEvent(`Authenticated as ${currentUser.username}. Game state persistence enabled.`);
+        }
+
+        function logOutUser() {
+            localStorage.removeItem('macroshift_session');
+            currentUser = null;
+            updateAuthUI();
+            logEvent("Logged out from session.");
+        }
+
+        function saveCurrentGame() {
+            if (!currentUser) return;
+            const slot = {
+                timestamp: Date.now(),
+                tick: state.tick,
+                repoRate: state.repoRate,
+                inflation: state.inflation,
+                debtPrincipal: state.debtPrincipal,
+                assets: state.assets.map(a => ({ id: a.id, balance: a.balance }))
+            };
+            localStorage.setItem(`macroshift_save_${currentUser.username}`, JSON.stringify(slot));
+            updateAuthUI();
+            logEvent(`Game state successfully saved to cloud slot for ${currentUser.username}!`);
+            alert(`Game saved! You can resume from Month ${state.tick} anytime.`);
+        }
+
+        function resumeSavedGame() {
+            if (!currentUser) return;
+            const raw = localStorage.getItem(`macroshift_save_${currentUser.username}`);
+            if (!raw) return;
+            const slot = JSON.parse(raw);
+            state.tick = slot.tick;
+            state.repoRate = slot.repoRate;
+            state.inflation = slot.inflation;
+            state.debtPrincipal = slot.debtPrincipal;
+            slot.assets.forEach(sa => {
+                const a = state.assets.find(item => item.id === sa.id);
+                if (a) a.balance = sa.balance;
+            });
+            logEvent(`Game resumed from Month ${state.tick}. Capital & Liabilities restored.`);
+            render();
+            alert(`Resumed game at Month ${state.tick}!`);
+        }
+
+        // ================= TUTORIAL SYSTEM =================
+        const tutorialSteps = [
+            {
+                title: "CORE MACRO MECHANICS",
+                tag: "Step 1 of 5",
+                desc: "Every second represents one fiscal month. Your Net Worth equals your combined asset balances minus debt liabilities.",
+                points: ["Asset yields compound every second.", "Cash without an inflation hedge loses real purchasing power.", "Static allocations will suffer rapid capital penalties."]
+            },
+            {
+                title: "DYNAMIC ASSET BUCKETS",
+                tag: "Step 2 of 5",
+                desc: "Capital can be rotated across 6 distinct asset classes:",
+                points: ["Cash: Servicing fuel, zero nominal loss, eroded by inflation.", "Long Bonds: Sensitive to duration. Rate hikes crush principal (-19%).", "Tech Equities: High growth beta, compressed by rate hikes.", "Commodities & Gold: Strongest hedge in inflation chokepoints."]
+            },
+            {
+                title: "GOVERNANCE DIRECTIVE SHOCKS",
+                tag: "Step 3 of 5",
+                desc: "The automated Governance Directive Injector fires off sudden central bank & geopolitical shifts.",
+                points: ["Central bank emergency rate hikes (+250 bps).", "Sweeping capital gains tax overhauls (40%).", "Crude supply embargoes and commodity rallies."]
+            },
+            {
+                title: "DEBT BILLING & BANKRUPTCY",
+                tag: "Step 4 of 5",
+                desc: "Debt service is deducted every 12 seconds from your Liquid Cash.",
+                points: ["If Cash < Debt Due: Default Strike awarded!", "Shortfall is added with penalty (+25%) to principal.", "3 Default Strikes = Sovereign Bankruptcy!"]
+            },
+            {
+                title: "FIRST EVENT PRACTICE",
+                tag: "Step 5 of 5",
+                desc: "Practice survival right now! Try clicking 'Quick Hedge to Cash' or shifting 25% from Tech to Cash to secure your runway.",
+                points: ["Keep your Cash runway above 2x of upcoming debt due.", "Adapt quickly whenever an alert banner flashes!"]
+            }
+        ];
+        let currentTutIndex = 0;
+
+        function openTutorial() {
+            currentTutIndex = 0;
+            renderTutorialStep();
+            document.getElementById('tutorial-modal').classList.remove('hidden');
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial-modal').classList.add('hidden');
+        }
+
+        function renderTutorialStep() {
+            const step = tutorialSteps[currentTutIndex];
+            document.getElementById('tut-title').innerText = step.title;
+            document.getElementById('tut-step-tag').innerText = step.tag;
+            document.getElementById('tut-desc').innerText = step.desc;
+
+            const pts = document.getElementById('tut-points');
+            pts.innerHTML = step.points.map(p => `
+                <div class="flex items-start space-x-2">
+                    <span class="text-emerald-400 font-bold">✓</span>
+                    <span>${p}</span>
+                </div>
+            `).join('');
+
+            const dots = document.getElementById('tut-dots');
+            dots.innerHTML = tutorialSteps.map((_, i) => `
+                <span class="w-2 h-2 rounded-full ${i === currentTutIndex ? 'bg-cyan-400' : 'bg-slate-700'}"></span>
+            `).join('');
+
+            document.getElementById('btn-tut-prev').style.display = currentTutIndex === 0 ? 'none' : 'block';
+            document.getElementById('btn-tut-next').innerText = currentTutIndex === tutorialSteps.length - 1 ? 'Finish Tutorial' : 'Next Step';
+        }
+
+        function nextTutStep() {
+            if (currentTutIndex < tutorialSteps.length - 1) {
+                currentTutIndex++;
+                renderTutorialStep();
+            } else {
+                closeTutorial();
+            }
+        }
+
+        function prevTutStep() {
+            if (currentTutIndex > 0) {
+                currentTutIndex--;
+                renderTutorialStep();
+            }
+        }
+
+        // ================= MACRO ENGINE HELPERS =================
+        function getNetWorth() {
+            const totalAssets = state.assets.reduce((sum, a) => sum + a.balance, 0);
+            return totalAssets - state.debtPrincipal;
+        }
+
+        function getMonthlyDebtService() {
+            const apr = state.repoRate + 0.035 + (state.inflation * 0.35);
+            return (state.debtPrincipal * apr) / 12;
+        }
+
+        function render() {
+            const nw = getNetWorth();
+            const cash = state.assets.find(a => a.id === 'CASH').balance;
+            const debtDue = getMonthlyDebtService();
+            const totalAssets = state.assets.reduce((sum, a) => sum + a.balance, 0);
+
+            document.getElementById('net-worth-display').innerText = `$${Math.round(nw).toLocaleString()}`;
+            document.getElementById('liquid-cash-display').innerText = `$${Math.round(cash).toLocaleString()}`;
+            document.getElementById('debt-service-display').innerText = `$${Math.round(debtDue).toLocaleString()}`;
+            document.getElementById('repo-rate-val').innerText = `${(state.repoRate * 100).toFixed(2)}%`;
+            document.getElementById('cpi-val').innerText = `${(state.inflation * 100).toFixed(2)}%`;
+            document.getElementById('resilience-score').innerText = `${state.resilience}%`;
+            document.getElementById('due-timer').innerText = `Due in ${state.debtSeconds}s`;
+            document.getElementById('due-progress').style.width = `${(state.debtSeconds / 12) * 100}%`;
+            document.getElementById('strikes-display').innerText = `${state.debtStrikes}/3 Strikes`;
+            document.getElementById('visualizer-total-assets').innerText = `Total Assets: $${Math.round(totalAssets).toLocaleString()}`;
+
+            const runway = cash / debtDue;
+            document.getElementById('cash-runway').innerText = `Runway: ${runway.toFixed(1)}x Due`;
+            const cashCard = document.getElementById('cash-card-border');
+            if (cash < debtDue) {
+                cashCard.classList.add('danger-pulse');
+            } else {
+                cashCard.classList.remove('danger-pulse');
+            }
+
+            // Real-Time Asset Allocation Visualizer (Stacked Bar & Legend)
+            const stackedBar = document.getElementById('stacked-allocation-bar');
+            const legendGrid = document.getElementById('allocation-legend-grid');
+
+            stackedBar.innerHTML = state.assets.map(a => {
+                const pct = totalAssets > 0 ? (a.balance / totalAssets) * 100 : 0;
+                return `<div class="${a.bgClass} h-full transition-all duration-300" style="width: ${pct}%" title="${a.ticker}: ${pct.toFixed(1)}%"></div>`;
+            }).join('');
+
+            legendGrid.innerHTML = state.assets.map(a => {
+                const pct = totalAssets > 0 ? ((a.balance / totalAssets) * 100).toFixed(1) : 0;
+                return `
+                <div class="bg-[#182238] rounded-lg p-2 border border-slate-700/60 flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                        <span class="w-2 h-2 rounded-full ${a.bgClass}"></span>
+                        <span class="text-xs font-bold text-white mono">${a.ticker}</span>
+                    </div>
+                    <span class="text-xs font-extrabold mono ${a.colorClass}">${pct}%</span>
+                </div>`;
+            }).join('');
+
+            // Render Asset Cards
+            const grid = document.getElementById('asset-grid');
+            grid.innerHTML = state.assets.map(asset => {
+                const pct = totalAssets > 0 ? ((asset.balance / totalAssets) * 100).toFixed(1) : 0;
+                const isPos = asset.apr >= 0;
+                return `
+                <div class="bg-[#111726] border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-extrabold text-white text-sm mono">${asset.ticker}</span>
+                                <span class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono">${pct}%</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400">${asset.name}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold mono text-white">$${Math.round(asset.balance).toLocaleString()}</div>
+                            <div class="text-xs mono font-bold ${isPos ? 'text-emerald-400' : 'text-crimsonNeon'}">
+                                ${isPos ? '+' : ''}${(asset.apr * 100).toFixed(1)}% APR
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                        <div class="${asset.bgClass} h-full" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="flex items-center justify-between mt-3 text-xs">
+                        <span class="text-slate-500 text-[10px]">Duration: ${asset.duration}</span>
+                        <div class="space-x-1">
+                            ${asset.id !== 'CASH' && asset.balance > 100 ? `
+                                <button onclick="shift('${asset.id}', 'CASH', 0.25)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2 py-1 rounded">Shift 25%</button>
+                                <button onclick="shift('${asset.id}', 'CASH', 0.50)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2 py-1 rounded">Shift 50%</button>
+                            ` : ''}
+                            <button onclick="shift('CASH', '${asset.id}', 0.33)" class="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-[10px] px-2 py-1 rounded font-bold">Inject</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function shift(fromId, toId, fraction) {
+            const from = state.assets.find(a => a.id === fromId);
+            const to = state.assets.find(a => a.id === toId);
+            if (!from || !to || from.balance <= 0) return;
+            const amt = from.balance * fraction;
+            from.balance -= amt;
+            to.balance += amt;
+            logEvent(`Capital Shift: ${from.ticker} -> ${to.ticker} ($${Math.round(amt).toLocaleString()})`);
+            render();
+        }
+
+        function applyPreset(type) {
+            const total = state.assets.reduce((sum, a) => sum + a.balance, 0);
+            const targets = {
+                SAFETY: { CASH: 0.7, COMMODITIES: 0.2, BONDS: 0.1, TECH: 0, REIT: 0, CRYPTO: 0 },
+                INFLATION: { COMMODITIES: 0.5, REIT: 0.25, CASH: 0.2, TECH: 0.05, BONDS: 0, CRYPTO: 0 },
+                GROWTH: { TECH: 0.5, CRYPTO: 0.3, CASH: 0.15, REIT: 0.05, BONDS: 0, COMMODITIES: 0 },
+                BALANCED: { BONDS: 0.3, TECH: 0.3, CASH: 0.2, REIT: 0.1, COMMODITIES: 0.1, CRYPTO: 0 }
+            }[type];
+            state.assets.forEach(a => {
+                a.balance = total * (targets[a.id] || 0);
+            });
+            logEvent(`Portfolio Tactical Rotation Applied: ${type}`);
+            render();
+        }
+
+        function quickHedgeToSafety() {
+            applyPreset('SAFETY');
+        }
+
+        function dismissDirective() {
+            document.getElementById('directive-banner').classList.add('hidden');
+        }
+
+        function logEvent(msg) {
+            const container = document.getElementById('event-logs');
+            const div = document.createElement('div');
+            div.innerText = `[TICK ${state.tick}] ${msg}`;
+            container.prepend(div);
+        }
+
+        // Fast-paced 1-second simulation game loop
+        setInterval(() => {
+            if (state.status !== "RUNNING") return;
+            state.tick++;
+
+            // Compound yields
+            state.assets.forEach(a => {
+                a.balance += a.balance * (a.apr / 12);
+            });
+
+            // Inflation drag on cash
+            const cash = state.assets.find(a => a.id === 'CASH');
+            cash.balance -= cash.balance * (state.inflation / 12 * 0.35);
+
+            // Debt billing
+            state.debtSeconds--;
+            if (state.debtSeconds <= 0) {
+                state.debtSeconds = 12;
+                const due = getMonthlyDebtService();
+                if (cash.balance >= due) {
+                    cash.balance -= due;
+                    logEvent(`Debt service settled: $${Math.round(due).toLocaleString()}`);
+                } else {
+                    state.debtStrikes++;
+                    logEvent(`DEFAULT STRIKE ${state.debtStrikes}/3! Cash deficit.`);
+                    if (state.debtStrikes >= 3) {
+                        state.status = "BANKRUPT";
+                        alert("SOVEREIGN BANKRUPTCY! Failed to service debt liabilities.");
+                    }
+                }
+            }
+
+            render();
+        }, 1000);
+
+        checkAuthSession();
+        render();
+    </script>
+</body>
+</html>
